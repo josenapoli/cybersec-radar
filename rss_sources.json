@@ -1,0 +1,86 @@
+[
+  {
+    "id": "thn",
+    "name": "The Hacker News",
+    "url": "https://feeds.feedburner.com/TheHackersNews",
+    "category": "Global Threat Intel",
+    "enabled": true
+  },
+  {
+    "id": "bleeping",
+    "name": "BleepingComputer",
+    "url": "https://www.bleepingcomputer.com/feed/",
+    "category": "Ransomware & Breaches",
+    "enabled": true
+  },
+  {
+    "id": "darkreading",
+    "name": "Dark Reading",
+    "url": "https://www.darkreading.com/rss.xml",
+    "category": "Enterprise Security",
+    "enabled": true
+  },
+  {
+    "id": "krebs",
+    "name": "Krebs on Security",
+    "url": "https://krebsonsecurity.com/feed/",
+    "category": "Cybercrime Investigation",
+    "enabled": true
+  },
+  {
+    "id": "securityweek",
+    "name": "SecurityWeek",
+    "url": "https://feeds.feedburner.com/securityweek",
+    "category": "Vulnerabilities & ICS",
+    "enabled": true
+  },
+  {
+    "id": "cisa_alerts",
+    "name": "CISA Cybersecurity Advisories",
+    "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+    "category": "Official US-CERT",
+    "enabled": true
+  },
+  {
+    "id": "sans_isc",
+    "name": "SANS Internet Storm Center",
+    "url": "https://isc.sans.edu/rssfeed.xml",
+    "category": "Threat Analysis",
+    "enabled": true
+  },
+  {
+    "id": "security_affairs",
+    "name": "Security Affairs",
+    "url": "https://securityaffairs.com/feed",
+    "category": "Hacking & Malware",
+    "enabled": true
+  },
+  {
+    "id": "incibe_cert",
+    "name": "INCIBE-CERT (España)",
+    "url": "https://www.incibe.es/feed/avisos-seguridad/all",
+    "category": "Avisos en Español",
+    "enabled": true
+  },
+  {
+    "id": "b1nary0",
+    "name": "B1nary0",
+    "url": "https://www.b1nary0.com.ar/?feed=rss",
+    "category": "Seguridad",
+    "enabled": true
+  },
+  {
+    "id": "segu_info",
+    "name": "Segu-Info",
+    "url": "https://blog.segu-info.com.ar/feeds/posts/default?alt=rss",
+    "category": "Seguridad",
+    "enabled": true
+  },
+  {
+    "id": "muyseguridad",
+    "name": "MuySeguridad",
+    "url": "https://www.muyseguridad.net/feed",
+    "category": "Seguridad",
+    "enabled": true
+  }
+]

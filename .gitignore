@@ -1,0 +1,36 @@
+# Secrets & config files that must NOT be versioned
+dashboard_config.json
+users.json
+
+# Python cache / compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment folders
+env/
+venv/
+.venv/
+
+# IDE / editor specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs & temporary files
+*.log
+*.tmp
+*.bak
+*.old
+
+# OS generated files
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# Build / distribution folders (if any)
+build/
+dist/
+*.egg-info/

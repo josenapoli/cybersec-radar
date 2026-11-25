@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBERSEC RADAR // Panel de Control de Ciberseguridad & CVEs</title>
+  
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            cyber: {
+              950: '#070a12',
+              900: '#0d1322',
+              850: '#11192e',
+              800: '#17223b',
+              700: '#233354',
+              accent: '#38bdf8',
+              critical: '#ef4444',
+              high: '#f97316',
+              medium: '#f59e0b',
+              low: '#3b82f6',
+              poc: '#d946ef'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0d1322;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #233354;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #38bdf8;
+    }
+    .glow-critical {
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
+    }
+    .glow-high {
+      box-shadow: 0 0 15px rgba(249, 115, 22, 0.2);
+    }
+    .glow-poc {
+      box-shadow: 0 0 15px rgba(217, 70, 239, 0.3);
+    }
+    .glow-blue {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+  </style>
+</head>
+<body class="bg-cyber-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- ==================== TOP NAVIGATION HEADER ==================== -->
+  <header class="border-b border-cyber-800 bg-cyber-900/90 backdrop-blur sticky top-0 z-40 px-4 lg:px-6 py-3">
+    <div class="max-w-[1920px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <!-- Brand & Status -->
+      <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+        <div class="flex items-center gap-2.5">
+          <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 text-white shadow-lg shadow-cyan-500/20">
+            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+            <span class="absolute -top-1 -right-1 flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+                CYBERSEC <span class="text-cyan-400 font-extrabold">RADAR</span>
+              </h1>
+              <span class="text-[10px] font-mono uppercase bg-cyan-950 text-cyan-300 border border-cyan-800/80 px-1.5 py-0.5 rounded">v2.5 PRO</span>
+            </div>
+            <p class="text-xs text-slate-400 font-mono flex items-center gap-1.5">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span id="backendStatusLabel">SISTEMA CONECTADO // ACTUALIZACIÓN AUTOMÁTICA</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Mobile Tab Switcher -->
+        <div class="flex lg:hidden bg-cyber-850 p-1 rounded-lg border border-cyber-800">
+          <button id="mobileTabNewsBtn" onclick="switchMobileTab('news')" class="px-3 py-1 text-xs font-semibold rounded bg-cyan-600 text-white">Noticias</button>
+          <button id="mobileTabCvesBtn" onclick="switchMobileTab('cves')" class="px-3 py-1 text-xs font-semibold rounded text-slate-400">CVEs</button>
+        </div>
+      </div>
+
+      <!-- Live KPI Counters -->
+      <div class="hidden xl:flex items-center gap-3">
+        <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-cyber-850 border border-cyber-800">
+          <i data-lucide="newspaper" class="w-4 h-4 text-cyan-400"></i>
+          <div>
+            <div class="text-[10px] uppercase font-mono text-slate-400">Noticias</div>
+            <div id="statNewsCount" class="text-sm font-bold font-mono text-slate-200">0</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-cyber-850 border border-cyber-800">
+          <i data-lucide="bug" class="w-4 h-4 text-amber-400"></i>
+          <div>
+            <div class="text-[10px] uppercase font-mono text-slate-400">CVEs Rastreados</div>
+            <div id="statCvesCount" class="text-sm font-bold font-mono text-slate-200">0</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-red-950/40 border border-red-900/60 glow-critical">
+          <i data-lucide="flame" class="w-4 h-4 text-red-400"></i>
+          <div>
+            <div class="text-[10px] uppercase font-mono text-red-300">Críticos (9.0+)</div>
+            <div id="statCriticalCount" class="text-sm font-bold font-mono text-red-400">0</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-purple-950/40 border border-purple-900/60 glow-poc">
+          <i data-lucide="zap" class="w-4 h-4 text-purple-400"></i>
+          <div>
+            <div class="text-[10px] uppercase font-mono text-purple-300">Exploits / PoC</div>
+            <div id="statPocCount" class="text-sm font-bold font-mono text-purple-400">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions & Controls -->
+      <div class="flex items-center gap-2.5 w-full md:w-auto justify-end">
+        
+        <!-- Timer Badge -->
+        <div class="flex items-center gap-2 bg-cyber-850 border border-cyber-800 px-3 py-1.5 rounded-lg text-xs font-mono text-slate-300">
+          <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400 animate-spin" style="animation-duration: 10s;"></i>
+          <span>Auto:</span>
+          <select id="refreshIntervalSelect" onchange="changeRefreshInterval()" class="bg-transparent text-cyan-300 font-bold focus:outline-none cursor-pointer">
+            <option value="1" class="bg-cyber-900">1 min</option>
+            <option value="5" class="bg-cyber-900">5 min</option>
+            <option value="10" class="bg-cyber-900" selected>10 min</option>
+            <option value="30" class="bg-cyber-900">30 min</option>
+            <option value="0" class="bg-cyber-900">Pausado</option>
+          </select>
+          <span id="countdownLabel" class="text-slate-400 text-[11px]">(10:00)</span>
+        </div>
+
+        <!-- Manual Refresh Button -->
+        <button id="refreshBtn" onclick="triggerManualRefresh()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md shadow-cyan-600/20 transition active:scale-95">
+          <i id="refreshIcon" data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+          <span>Actualizar</span>
+        </button>
+
+        <!-- Sound toggle -->
+        <button id="soundToggleBtn" onclick="toggleSoundAlerts()" title="Alertas de sonido para CVEs críticos" class="p-2 rounded-lg bg-cyber-850 border border-cyber-800 hover:border-slate-600 text-slate-300 hover:text-white transition">
+          <i id="soundIcon" data-lucide="volume-2" class="w-4 h-4 text-cyan-400"></i>
+        </button>
+
+        <!-- Settings Button -->
+        <button onclick="openSettingsModal()" title="Configuración de Fuentes RSS y Temas" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyber-850 border border-cyber-800 hover:border-cyan-500/50 text-slate-200 text-xs font-semibold transition">
+          <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span class="hidden sm:inline">Configuración</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ==================== MAIN DASHBOARD LAYOUT ==================== -->
+  <main class="max-w-[1920px] mx-auto w-full p-3 lg:p-6 flex-1 flex flex-col gap-4">
+    
+    <!-- Top Offline/Local Notice (if direct file:// without server) -->
+    <div id="standaloneBanner" class="hidden bg-amber-950/70 border border-amber-800/80 rounded-xl p-3.5 text-xs text-amber-200 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
+        <span><strong>Modo Navegador Autónomo:</strong> Para una velocidad óptima, sin bloqueos de CORS y actualización en segundo plano, inicia el servidor local ejecutando <code class="bg-black/40 px-1 py-0.5 rounded text-amber-300">python app.py</code> o el archivo <code class="bg-black/40 px-1 py-0.5 rounded text-amber-300">iniciar_panel.bat</code>.</span>
+      </div>
+      <button onclick="document.getElementById('standaloneBanner').style.display='none'" class="text-amber-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+
+    <!-- Dual Column Responsive Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 items-start">
+
+      <!-- ======================================================= -->
+      <!-- SECTION 1: CYBERSECURITY NEWS RADAR (LEFT COLUMN)      -->
+      <!-- ======================================================= -->
+      <section id="sectionNews" class="flex flex-col bg-cyber-900 border border-cyber-800 rounded-2xl shadow-xl overflow-hidden h-[calc(100vh-140px)] min-h-[600px]">
+        
+        <!-- Section Header -->
+        <div class="p-4 border-b border-cyber-800 bg-cyber-850/70 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="p-2 rounded-lg bg-cyan-950 border border-cyan-800/60 text-cyan-400">
+                <i data-lucide="radio" class="w-5 h-5 animate-pulse"></i>
+              </div>
+              <div>
+                <h2 class="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                  Noticias de Ciberseguridad
+                  <span id="newsFilteredBadge" class="text-[11px] font-mono font-normal text-cyan-300 bg-cyan-950 px-2 py-0.5 rounded-full border border-cyan-800/50">0 items</span>
+                </h2>
+                <p class="text-xs text-slate-400">Feeds RSS globales, alertas gubernamentales y análisis de amenazas</p>
+              </div>
+            </div>
+
+            <!-- Manage Sources Button -->
+            <button onclick="openSettingsModal('tab-sources')" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyber-800 hover:bg-cyber-700 border border-cyber-700 text-xs text-slate-200 transition">
+              <i data-lucide="rss" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>+ Fuentes RSS</span>
+            </button>
+          </div>
+
+          <!-- News Filter & Search Bar -->
+          <div class="flex flex-col sm:flex-row gap-2">
+            <!-- Search -->
+            <div class="relative flex-1">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+              <input type="text" id="newsSearchInput" oninput="filterNews()" placeholder="Buscar en noticias (ej. ransomware, zero-day, cisco)..." class="w-full bg-cyber-950 border border-cyber-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+            </div>
+
+            <!-- Source Filter Dropdown -->
+            <select id="newsSourceFilter" onchange="filterNews()" class="bg-cyber-950 border border-cyber-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-cyan-500">
+              <option value="">Todas las fuentes RSS</option>
+              <!-- Dynamic options -->
+            </select>
+          </div>
+
+          <!-- Source Quick Pills Carousel -->
+          <div id="newsSourcePills" class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+            <button onclick="selectSourcePill('')" class="source-pill active-pill whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-medium bg-cyan-600 text-white transition">Todos</button>
+            <!-- Dynamic pills -->
+          </div>
+        </div>
+
+        <!-- News Feed List Container (Scrollable) -->
+        <div id="newsFeedList" class="flex-1 overflow-y-auto p-4 space-y-3">
+          <!-- Loading skeleton -->
+          <div class="animate-pulse space-y-3">
+            <div class="h-24 bg-cyber-850 rounded-xl"></div>
+            <div class="h-24 bg-cyber-850 rounded-xl"></div>
+            <div class="h-24 bg-cyber-850 rounded-xl"></div>
+          </div>
+        </div>
+
+        <!-- News Section Footer -->
+        <div class="p-3 border-t border-cyber-800 bg-cyber-850/60 text-xs font-mono text-slate-400 flex items-center justify-between">
+          <span id="newsLastUpdatedLabel">Actualizado: --:--:--</span>
+          <button onclick="scrollSectionToTop('newsFeedList')" class="text-cyan-400 hover:underline flex items-center gap-1">
+            <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i> Arriba
+          </button>
+        </div>
+      </section>
+
+      <!-- ======================================================= -->
+      <!-- SECTION 2: CVEs INTELLIGENCE RADAR (RIGHT COLUMN)       -->
+      <!-- ======================================================= -->
+      <section id="sectionCves" class="flex flex-col bg-cyber-900 border border-cyber-800 rounded-2xl shadow-xl overflow-hidden h-[calc(100vh-140px)] min-h-[600px]">
+        
+        <!-- Section Header -->
+        <div class="p-4 border-b border-cyber-800 bg-cyber-850/70 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="p-2 rounded-lg bg-red-950 border border-red-800/60 text-red-400">
+                <i data-lucide="shield-alert" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h2 class="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                  Vigilancia de Nuevos CVEs
+                  <span id="cveFilteredBadge" class="text-[11px] font-mono font-normal text-red-300 bg-red-950 px-2 py-0.5 rounded-full border border-red-800/50">0 detectados</span>
+                </h2>
+                <p class="text-xs text-slate-400">Clasificación por criticidad, alcance, producto, y disponibilidad de PoC/Exploits</p>
+              </div>
+            </div>
+
+            <!-- Manage Keywords Button -->
+            <button onclick="openSettingsModal('tab-keywords')" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyber-800 hover:bg-cyber-700 border border-cyber-700 text-xs text-slate-200 transition">
+              <i data-lucide="tag" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>+ Temas / Apps</span>
+            </button>
+          </div>
+
+          <!-- Application / Topics Monitored Chips -->
+          <div class="flex flex-col gap-1.5">
+            <div class="text-[11px] font-mono uppercase text-slate-400 flex items-center justify-between">
+              <span>Filtrar por Tema / Aplicación:</span>
+              <button onclick="clearTopicFilter()" id="clearTopicBtn" class="text-cyan-400 hover:underline hidden">Ver Todos</button>
+            </div>
+            <div id="cveTopicChips" class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+              <button onclick="selectTopicChip('')" class="topic-chip active-chip whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-semibold bg-cyan-600 text-white transition">Todos</button>
+              <!-- Dynamic topic chips from keywords.json -->
+            </div>
+          </div>
+
+          <!-- Filters & Sorting Bar -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1 border-t border-cyber-800/80">
+            <!-- Search -->
+            <div class="sm:col-span-5 relative">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+              <input type="text" id="cveSearchInput" oninput="filterCves()" placeholder="Buscar CVE-ID, producto o texto..." class="w-full bg-cyber-950 border border-cyber-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+            </div>
+
+            <!-- Severity Dropdown -->
+            <div class="sm:col-span-3">
+              <select id="cveSeverityFilter" onchange="filterCves()" class="w-full bg-cyber-950 border border-cyber-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                <option value="ALL">Cualquier Severidad</option>
+                <option value="CRITICAL">🔴 Crítica (9.0 - 10.0)</option>
+                <option value="HIGH">🟠 Alta (7.0 - 8.9)</option>
+                <option value="MEDIUM">🟡 Media (4.0 - 6.9)</option>
+                <option value="LOW">🔵 Baja (0.1 - 3.9)</option>
+              </select>
+            </div>
+
+            <!-- Sort By -->
+            <div class="sm:col-span-4">
+              <select id="cveSortBy" onchange="filterCves()" class="w-full bg-cyber-950 border border-cyber-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                <option value="score">Ordenar: Severidad (CVSS)</option>
+                <option value="poc">Ordenar: Con PoC primero</option>
+                <option value="date">Ordenar: Fecha reciente</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- PoC & Scope Toggle Pills -->
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
+            <label class="flex items-center gap-2 cursor-pointer bg-purple-950/40 hover:bg-purple-900/40 border border-purple-800/60 px-3 py-1.5 rounded-lg transition">
+              <input type="checkbox" id="cvePocOnlyCheckbox" onchange="filterCves()" class="rounded bg-cyber-950 border-purple-600 text-purple-600 focus:ring-0">
+              <span class="font-semibold text-purple-300 flex items-center gap-1">
+                <i data-lucide="zap" class="w-3.5 h-3.5 text-purple-400"></i>
+                Solo con PoC / Exploit Público
+              </span>
+            </label>
+
+            <!-- Scope filter -->
+            <div class="flex items-center gap-1 text-[11px] font-mono text-slate-400">
+              <span>Alcance:</span>
+              <select id="cveScopeFilter" onchange="filterCves()" class="bg-cyber-950 border border-cyber-800 rounded-lg px-2 py-1 text-slate-300 focus:outline-none">
+                <option value="">Cualquier Vector</option>
+                <option value="Red">Red / Remoto</option>
+                <option value="Local">Local</option>
+                <option value="Adyacente">Red Adyacente</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- CVEs List Container (Scrollable) -->
+        <div id="cveFeedList" class="flex-1 overflow-y-auto p-4 space-y-3">
+          <!-- Loading skeleton -->
+          <div class="animate-pulse space-y-3">
+            <div class="h-28 bg-cyber-850 rounded-xl"></div>
+            <div class="h-28 bg-cyber-850 rounded-xl"></div>
+            <div class="h-28 bg-cyber-850 rounded-xl"></div>
+          </div>
+        </div>
+
+        <!-- CVE Section Footer -->
+        <div class="p-3 border-t border-cyber-800 bg-cyber-850/60 text-xs font-mono text-slate-400 flex items-center justify-between">
+          <span id="cveLastUpdatedLabel">Actualizado: --:--:--</span>
+          <button onclick="scrollSectionToTop('cveFeedList')" class="text-cyan-400 hover:underline flex items-center gap-1">
+            <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i> Arriba
+          </button>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ==================== MODAL 1: CVE DETAIL DEEP DIVE ==================== -->
+  <div id="cveDetailModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-cyber-900 border border-cyber-700 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-cyber-800 bg-cyber-850 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div id="modalSeverityBadge" class="px-2.5 py-1 rounded-lg text-xs font-bold font-mono">--</div>
+          <h3 id="modalCveId" class="text-lg font-bold font-mono text-white">CVE-XXXX-XXXX</h3>
+        </div>
+        <button onclick="closeCveModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-cyber-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div id="modalCveBody" class="p-6 overflow-y-auto space-y-5 text-sm">
+        <!-- Content populated via JavaScript -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-cyber-800 bg-cyber-850/70 flex items-center justify-between">
+        <div id="modalExternalLinks" class="flex items-center gap-2">
+          <!-- NVD, Mitre, Exploit-DB links -->
+        </div>
+        <button onclick="closeCveModal()" class="px-4 py-2 bg-cyber-800 hover:bg-cyber-700 rounded-xl text-xs font-semibold text-slate-200">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: SETTINGS (SOURCES & KEYWORDS) ==================== -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-cyber-900 border border-cyber-700 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-cyber-800 bg-cyber-850 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="sliders-horizontal" class="w-5 h-5 text-cyan-400"></i>
+          <h3 class="text-base font-bold text-white">Configuración del Panel de Control</h3>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-cyber-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="flex border-b border-cyber-800 bg-cyber-950/60 px-6 gap-6 text-xs font-semibold">
+        <button id="btnTabSources" onclick="switchSettingsTab('tab-sources')" class="py-3 border-b-2 border-cyan-400 text-cyan-400">
+          Fuentes RSS de Noticias
+        </button>
+        <button id="btnTabKeywords" onclick="switchSettingsTab('tab-keywords')" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+          Temas & Aplicaciones (CVEs)
+        </button>
+        <button id="btnTabPreferences" onclick="switchSettingsTab('tab-preferences')" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+          Intervalos & Alertas
+        </button>
+      </div>
+
+      <!-- Tabs Contents -->
+      <div class="p-6 overflow-y-auto flex-1 space-y-6">
+        
+        <!-- ================= TAB 1: RSS SOURCES ================= -->
+        <div id="tab-sources" class="settings-tab space-y-5">
+          <div>
+            <h4 class="text-sm font-bold text-white mb-1">Agregar Nueva Fuente RSS</h4>
+            <p class="text-xs text-slate-400 mb-3">Introduce la URL de cualquier feed RSS o Atom de ciberseguridad para incorporar sus noticias al panel.</p>
+            
+            <form onsubmit="handleAddNewSource(event)" class="bg-cyber-850 p-4 rounded-xl border border-cyber-800 space-y-3">
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div class="sm:col-span-5">
+                  <label class="block text-xs font-mono text-slate-400 mb-1">Nombre de la Fuente</label>
+                  <input type="text" id="newSourceName" placeholder="Ej. CyberScoop, SecLists..." required class="w-full bg-cyber-950 border border-cyber-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                </div>
+                <div class="sm:col-span-7">
+                  <label class="block text-xs font-mono text-slate-400 mb-1">URL del Feed RSS / Atom</label>
+                  <input type="url" id="newSourceUrl" placeholder="https://ejemplo.com/feed.xml" required class="w-full bg-cyber-950 border border-cyber-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                </div>
+              </div>
+
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                <div class="w-full sm:w-1/2">
+                  <input type="text" id="newSourceCategory" placeholder="Categoría (ej. Exploits, Avisos, Malware)" class="w-full bg-cyber-950 border border-cyber-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <button type="button" onclick="testSourceUrl()" class="px-3 py-2 rounded-lg bg-cyber-800 hover:bg-cyber-700 text-xs font-semibold text-slate-200 transition">
+                    Probar Enlace
+                  </button>
+                  <button type="submit" class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-xs font-semibold text-white transition flex items-center gap-1.5">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Agregar Fuente</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="testUrlResult" class="hidden text-xs p-2.5 rounded-lg mt-2"></div>
+            </form>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-bold text-white">Fuentes RSS Configuradas</h4>
+              <span id="sourcesCountBadge" class="text-xs font-mono text-slate-400">0 fuentes</span>
+            </div>
+            
+            <div id="sourcesManagerList" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 2: KEYWORDS & TOPICS ================= -->
+        <div id="tab-keywords" class="settings-tab hidden space-y-6">
+          <div>
+            <h4 class="text-sm font-bold text-white mb-1">Temas y Aplicaciones Rastreados (Include Keywords)</h4>
+            <p class="text-xs text-slate-400 mb-3">Las vulnerabilidades que coincidan con estos términos serán priorizadas e indexadas en los filtros rápidos.</p>
+            
+            <div class="flex gap-2 mb-3">
+              <input type="text" id="newKeywordInput" placeholder="Agregar tema o software (ej. apache, wordpress, palo alto, docker)..." class="flex-1 bg-cyber-950 border border-cyber-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+              <button onclick="addNewKeyword()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-semibold transition">
+                Agregar
+              </button>
+            </div>
+
+            <div id="trackedKeywordsTags" class="flex flex-wrap gap-2 p-3 bg-cyber-850 rounded-xl border border-cyber-800 min-h-[80px]">
+              <!-- Tags rendered dynamically -->
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-sm font-bold text-white mb-1">Filtro de Exclusión (Exclude Keywords)</h4>
+            <p class="text-xs text-slate-400 mb-3">Los CVEs que contengan estas palabras serán descartados para reducir ruido no deseado.</p>
+            
+            <div class="flex gap-2 mb-3">
+              <input type="text" id="newExcludeInput" placeholder="Excluir palabra (ej. kernel, nvidia, android)..." class="flex-1 bg-cyber-950 border border-cyber-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+              <button onclick="addNewExclude()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-semibold transition">
+                Excluir
+              </button>
+            </div>
+
+            <div id="excludedKeywordsTags" class="flex flex-wrap gap-2 p-3 bg-cyber-850 rounded-xl border border-cyber-800 min-h-[60px]">
+              <!-- Excluded tags rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 3: PREFERENCES ================= -->
+        <div id="tab-preferences" class="settings-tab hidden space-y-5">
+          <div class="bg-cyber-850 p-4 rounded-xl border border-cyber-800 space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-white mb-1">Frecuencia de Auto-Actualización (Minutos)</label>
+              <div class="flex items-center gap-4">
+                <input type="range" id="refreshSlider" min="1" max="60" value="10" oninput="document.getElementById('sliderValueLabel').textContent = this.value + ' min'" class="flex-1 accent-cyan-500">
+                <span id="sliderValueLabel" class="text-xs font-mono font-bold text-cyan-300 w-16">10 min</span>
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-cyber-800 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-bold text-white">Alerta de Audio para CVEs Críticos</div>
+                <div class="text-[11px] text-slate-400">Emite un tono acústico cuando se detecta una nueva vulnerabilidad crítica (9.0+) o con PoC activo.</div>
+              </div>
+              <input type="checkbox" id="prefSoundEnabled" checked class="rounded bg-cyber-950 border-cyan-600 text-cyan-600 focus:ring-0 w-4 h-4">
+            </div>
+
+            <div class="pt-3 border-t border-cyber-800">
+              <label class="block text-xs font-bold text-white mb-1">API Key de NVD (Opcional)</label>
+              <div class="text-[11px] text-slate-400 mb-2">Permite hasta 50 consultas cada 30 segundos sin límites de tasa. Si no tienes una, el sistema funciona automáticamente en modo seguro.</div>
+              <input type="password" id="prefNvdApiKey" placeholder="Introduce tu API Key de NIST NVD..." class="w-full bg-cyber-950 border border-cyber-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <button onclick="savePreferences()" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-600/20 transition">
+              Guardar Preferencias
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-cyber-800 bg-cyber-850/70 flex justify-end">
+        <button onclick="closeSettingsModal()" class="px-4 py-2 bg-cyber-800 hover:bg-cyber-700 rounded-xl text-xs font-semibold text-slate-200">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Context for Audio Alerts -->
+  <script>
+    // Audio synthesizer for SOC alerts
+    function playAlertTone(type = 'critical') {
+      if (!isSoundEnabled) return;
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if (type === 'critical') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+          osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.3);
+        } else {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+          osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.3);
+        }
+      } catch (e) {
+        console.warn("AudioContext error:", e);
+      }
+    }
+  </script>
+
+  <!-- ==================== CORE JAVASCRIPT LOGIC ==================== -->
+  <script>
+    // Global State
+    let isBackendAvailable = true;
+    let allNewsItems = [];
+    let allCveItems = [];
+    let trackedKeywords = [];
+    let excludedKeywords = [];
+    let rssSources = [];
+    let activeSourceFilter = '';
+    let activeTopicFilter = '';
+    let isSoundEnabled = true;
+    let refreshIntervalMinutes = 10;
+    let countdownSeconds = 600;
+    let countdownTimer = null;
+    let knownCveIds = new Set();
+
+    // Default Fallback RSS Sources
+    const DEFAULT_SOURCES = [
+      { id: "thn", name: "The Hacker News", url: "https://feeds.feedburner.com/TheHackersNews", category: "Global Threat Intel", enabled: true },
+      { id: "bleeping", name: "BleepingComputer", url: "https://www.bleepingcomputer.com/feed/", category: "Ransomware & Breaches", enabled: true },
+      { id: "darkreading", name: "Dark Reading", url: "https://www.darkreading.com/rss.xml", category: "Enterprise Security", enabled: true },
+      { id: "krebs", name: "Krebs on Security", url: "https://krebsonsecurity.com/feed/", category: "Cybercrime Investigation", enabled: true },
+      { id: "securityweek", name: "SecurityWeek", url: "https://feeds.feedburner.com/securityweek", category: "Vulnerabilities & ICS", enabled: true },
+      { id: "cisa_alerts", name: "CISA Cybersecurity Advisories", url: "https://www.cisa.gov/cybersecurity-advisories/all.xml", category: "Official US-CERT", enabled: true },
+      { id: "sans_isc", name: "SANS Internet Storm Center", url: "https://isc.sans.edu/rssfeed.xml", category: "Threat Analysis", enabled: true },
+      { id: "security_affairs", name: "Security Affairs", url: "https://securityaffairs.com/feed", category: "Hacking & Malware", enabled: true },
+      { id: "incibe_cert", name: "INCIBE-CERT (España)", url: "https://www.incibe.es/feed/avisos-seguridad/all", category: "Avisos en Español", enabled: true },
+      { id: "ccn_cert", name: "CCN-CERT (España)", url: "https://www.ccn-cert.cni.es/es/avisos-de-seguridad.feed?type=rss", category: "Avisos en Español", enabled: true }
+    ];
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', async () => {
+      lucide.createIcons();
+      loadLocalPreferences();
+      await checkBackendAndLoad();
+      startAutoRefreshCountdown();
+    });
+
+    // Check if backend API is responding
+    async function checkBackendAndLoad() {
+      try {
+        const res = await fetch('/api/stats', { cache: 'no-store' });
+        if (res.ok) {
+          isBackendAvailable = true;
+          document.getElementById('backendStatusLabel').textContent = "SISTEMA CONECTADO // MOTOR FLASK ACTIVO";
+          document.getElementById('backendStatusLabel').className = "text-emerald-400 font-mono";
+          await loadAllDataFromBackend();
+          return;
+        }
+      } catch (e) {
+        // Fallback check if page opened via file:// or another port
+        try {
+          const res2 = await fetch('http://127.0.0.1:5000/api/stats', { cache: 'no-store' });
+          if (res2.ok) {
+            isBackendAvailable = true;
+            document.getElementById('backendStatusLabel').textContent = "CONECTADO A BACKEND LOCAL (PORT 5000)";
+            document.getElementById('backendStatusLabel').className = "text-emerald-400 font-mono";
+            await loadAllDataFromBackend('http://127.0.0.1:5000');
+            return;
+          }
+        } catch (e2) {}
+      }
+
+      // Standalone Browser Mode (file:// or static server)
+      isBackendAvailable = false;
+      document.getElementById('standaloneBanner').classList.remove('hidden');
+      document.getElementById('backendStatusLabel').textContent = "MODO AUTÓNOMO (NAVEGADOR DIRECTO)";
+      document.getElementById('backendStatusLabel').className = "text-amber-400 font-mono";
+      loadStandaloneData();
+    }
+
+    // Load data through Flask backend
+    async function loadAllDataFromBackend(baseUrl = '') {
+      try {
+        // 1. Load Stats
+        const statsRes = await fetch(`${baseUrl}/api/stats`);
+        const stats = await statsRes.json();
+        updateStatsUI(stats);
+
+        // 2. Load News
+        const newsRes = await fetch(`${baseUrl}/api/news`);
+        const newsData = await newsRes.json();
+        allNewsItems = newsData.items || [];
+        renderNewsList(allNewsItems);
+        if (newsData.last_updated) {
+          document.getElementById('newsLastUpdatedLabel').textContent = `Actualizado: ${formatTime(newsData.last_updated)}`;
+        }
+
+        // 3. Load CVEs
+        const cvesRes = await fetch(`${baseUrl}/api/cves`);
+        const cvesData = await cvesRes.json();
+        allCveItems = cvesData.items || [];
+        trackedKeywords = cvesData.keywords || [];
+        renderCvesList(allCveItems);
+        renderTopicChips(trackedKeywords);
+        if (cvesData.last_updated) {
+          document.getElementById('cveLastUpdatedLabel').textContent = `Actualizado: ${formatTime(cvesData.last_updated)}`;
+        }
+
+        // 4. Load Sources & Keywords for UI filters
+        const sourcesRes = await fetch(`${baseUrl}/api/sources`);
+        const sourcesData = await sourcesRes.json();
+        rssSources = sourcesData.sources || [];
+        renderSourcePills(rssSources);
+        populateSourceSelect(rssSources);
+        renderSourcesManagerList(rssSources);
+
+        const kwRes = await fetch(`${baseUrl}/api/keywords`);
+        const kwData = await kwRes.json();
+        trackedKeywords = kwData.keywords.include || [];
+        excludedKeywords = kwData.keywords.exclude || [];
+        renderKeywordsTags();
+
+      } catch (err) {
+        console.error("Backend load error:", err);
+      }
+    }
+
+    // Standalone direct browser mode (client-side fallback)
+    async function loadStandaloneData() {
+      // Load saved sources or defaults from localStorage
+      const savedSources = localStorage.getItem('cybersec_rss_sources');
+      rssSources = savedSources ? JSON.parse(savedSources) : DEFAULT_SOURCES;
+      
+      const savedInclude = localStorage.getItem('cybersec_keywords_include');
+      trackedKeywords = savedInclude ? JSON.parse(savedInclude) : ["windows", "linux", "cisco", "fortinet", "sophos", "ssh", "rdp", "citrix", "teams"];
+      
+      const savedExclude = localStorage.getItem('cybersec_keywords_exclude');
+      excludedKeywords = savedExclude ? JSON.parse(savedExclude) : ["chrome", "kernel", "nvidia"];
+
+      renderSourcePills(rssSources);
+      populateSourceSelect(rssSources);
+      renderSourcesManagerList(rssSources);
+      renderTopicChips(trackedKeywords);
+      renderKeywordsTags();
+
+      // Sample CVEs for instant rich view
+      allCveItems = getClientSampleCves();
+      renderCvesList(allCveItems);
+
+      // Fetch client-side RSS feeds via CORS proxy
+      fetchClientSideNews();
+    }
+
+    // Client-side RSS parser using corsproxy / allorigins
+    async function fetchClientSideNews() {
+      const activeSources = rssSources.filter(s => s.enabled);
+      let collected = [];
+
+      for (const src of activeSources.slice(0, 5)) {
+        try {
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(src.url)}`;
+          const resp = await fetch(proxyUrl);
+          if (!resp.ok) continue;
+          const text = await resp.text();
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(text, "text/xml");
+          const items = xml.querySelectorAll("item, entry");
+          
+          let count = 0;
+          items.forEach(el => {
+            if (count >= 15) return;
+            const title = el.querySelector("title")?.textContent || "";
+            const link = el.querySelector("link")?.textContent || el.querySelector("link")?.getAttribute("href") || "";
+            const desc = el.querySelector("description, summary, content")?.textContent || "";
+            const pubDate = el.querySelector("pubDate, published, updated")?.textContent || "";
+            
+            if (title) {
+              collected.push({
+                id: `news_${Math.random().toString(36).substring(2, 9)}`,
+                title: title.trim(),
+                link: link.trim(),
+                summary: desc.replace(/<[^>]+>/g, ' ').substring(0, 200).trim() + "...",
+                source_id: src.id,
+                source_name: src.name,
+                category: src.category,
+                published: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+                timestamp: pubDate ? new Date(pubDate).getTime() / 1000 : Date.now() / 1000
+              });
+              count++;
+            }
+          });
+        } catch (e) {
+          console.warn(`Error fetching ${src.name} via proxy:`, e);
+        }
+      }
+
+      if (collected.length > 0) {
+        collected.sort((a, b) => b.timestamp - a.timestamp);
+        allNewsItems = collected;
+        renderNewsList(allNewsItems);
+        updateStatsUI({
+          news_count: allNewsItems.length,
+          cve_count: allCveItems.length,
+          critical_count: allCveItems.filter(c => (c.score || 0) >= 9.0).length,
+          poc_count: allCveItems.filter(c => c.has_poc).length
+        });
+      }
+    }
+
+    // ==================== RENDERING LOGIC ====================
+
+    function renderNewsList(items) {
+      const container = document.getElementById('newsFeedList');
+      document.getElementById('newsFilteredBadge').textContent = `${items.length} items`;
+      
+      if (!items || items.length === 0) {
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center p-12 text-slate-500 text-center">
+            <i data-lucide="inbox" class="w-10 h-10 mb-2 opacity-40"></i>
+            <p class="text-xs">No se encontraron noticias con los filtros actuales.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      const now = Date.now();
+
+      container.innerHTML = items.map(item => {
+        const itemDate = new Date(item.published);
+        const ageHours = (now - itemDate.getTime()) / (1000 * 60 * 60);
+        const isFresh = ageHours <= 8;
+        const relativeTime = getRelativeTimeString(itemDate);
+
+        return `
+          <article class="bg-cyber-850 hover:bg-cyber-800/90 border border-cyber-800 hover:border-cyan-500/40 rounded-xl p-4 transition-all duration-200 group flex flex-col justify-between gap-3 shadow-md">
+            
+            <div class="flex items-center justify-between gap-2 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800/70 font-semibold text-[10px] tracking-wide">
+                  ${escapeHtml(item.source_name)}
+                </span>
+                <span class="text-[11px] font-mono text-slate-400" title="${escapeHtml(item.published)}">
+                  ${relativeTime}
+                </span>
+              </div>
+
+              ${isFresh ? `
+                <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60 text-[10px] font-bold uppercase animate-pulse">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> NUEVO
+                </span>
+              ` : ''}
+            </div>
+
+            <!-- Title & Summary -->
+            <div>
+              <h3 class="text-sm font-semibold text-slate-100 group-hover:text-cyan-300 transition-colors leading-snug">
+                <a href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer" class="hover:underline">
+                  ${escapeHtml(item.title)}
+                </a>
+              </h3>
+              ${item.summary ? `
+                <p class="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
+                  ${escapeHtml(item.summary)}
+                </p>
+              ` : ''}
+            </div>
+
+            <!-- Card Action Footer -->
+            <div class="flex items-center justify-between pt-2 border-t border-cyber-800/60 text-xs">
+              <span class="text-[11px] text-slate-500 font-mono">#${escapeHtml(item.category || 'Seguridad')}</span>
+              <div class="flex items-center gap-2">
+                <button onclick="copyToClipboard('${escapeHtml(item.link)}', this)" class="text-slate-400 hover:text-cyan-300 p-1" title="Copiar enlace">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                </button>
+                <a href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 font-semibold text-cyan-400 hover:text-cyan-300 transition">
+                  <span>Leer</span>
+                  <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                </a>
+              </div>
+            </div>
+
+          </article>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function renderCvesList(items) {
+      const container = document.getElementById('cveFeedList');
+      document.getElementById('cveFilteredBadge').textContent = `${items.length} detectados`;
+
+      if (!items || items.length === 0) {
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center p-12 text-slate-500 text-center">
+            <i data-lucide="shield-check" class="w-10 h-10 mb-2 opacity-40"></i>
+            <p class="text-xs">No se encontraron CVEs con los filtros seleccionados.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = items.map(cve => {
+        const severity = (cve.severity || 'UNKNOWN').toUpperCase();
+        const score = cve.score !== null && cve.score !== undefined ? cve.score.toFixed(1) : 'N/A';
+        const hasPoc = cve.has_poc || false;
+        const isKev = cve.is_cisa_kev || false;
+        const targets = cve.affected_targets || [];
+        const impactTypes = cve.impact_types || [];
+        const vector = cve.attack_vector || 'Desconocido';
+
+        // Severity Color Scheme
+        let sevClass = "bg-slate-800 text-slate-300 border-slate-700";
+        let glowClass = "";
+        if (severity === "CRITICAL" || (cve.score && cve.score >= 9.0)) {
+          sevClass = "bg-red-950/80 text-red-400 border-red-500/60";
+          glowClass = "glow-critical border-red-900/50";
+        } else if (severity === "HIGH" || (cve.score && cve.score >= 7.0)) {
+          sevClass = "bg-orange-950/80 text-orange-400 border-orange-500/60";
+          glowClass = "glow-high border-orange-900/40";
+        } else if (severity === "MEDIUM" || (cve.score && cve.score >= 4.0)) {
+          sevClass = "bg-amber-950/80 text-amber-400 border-amber-500/60";
+        } else if (severity === "LOW") {
+          sevClass = "bg-blue-950/80 text-blue-400 border-blue-500/60";
+        }
+
+        return `
+          <div class="bg-cyber-850 hover:bg-cyber-800/90 border border-cyber-800 ${glowClass} rounded-xl p-4 transition-all duration-200 flex flex-col justify-between gap-3 shadow-md">
+            
+            <!-- Top Badges Row -->
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="font-mono font-bold text-sm text-cyan-300 tracking-wider">
+                  ${escapeHtml(cve.id)}
+                </span>
+                <button onclick="copyToClipboard('${escapeHtml(cve.id)}', this)" class="text-slate-400 hover:text-cyan-300 p-1" title="Copiar CVE-ID">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-1.5">
+                <!-- Severity Badge -->
+                <span class="px-2.5 py-0.5 rounded-lg border font-mono font-bold text-xs ${sevClass}">
+                  ${severity} ${score !== 'N/A' ? `[${score}]` : ''}
+                </span>
+
+                <!-- CISA KEV Badge -->
+                ${isKev ? `
+                  <span class="px-2 py-0.5 rounded-lg bg-red-900/70 text-white border border-red-500 text-[10px] font-mono font-bold flex items-center gap-1 animate-pulse" title="Vulnerabilidad confirmada en explotación activa por CISA">
+                    <i data-lucide="target" class="w-3 h-3 text-red-300"></i> CISA KEV (EXPLOTADO)
+                  </span>
+                ` : ''}
+
+                <!-- PoC Badge -->
+                ${hasPoc ? `
+                  <span class="px-2 py-0.5 rounded-lg bg-purple-950 text-purple-300 border border-purple-600/70 text-[10px] font-mono font-bold flex items-center gap-1 glow-poc" title="Existe código de explotación o PoC público">
+                    <i data-lucide="zap" class="w-3 h-3 text-purple-400"></i> PoC DISPONIBLE
+                  </span>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Affected Targets & Impact Tags -->
+            <div class="flex flex-wrap gap-1.5 text-xs">
+              ${targets.slice(0, 3).map(t => `
+                <span class="px-2 py-0.5 rounded-md bg-cyber-900 border border-cyber-700/80 text-slate-300 text-[11px] font-mono flex items-center gap-1">
+                  <i data-lucide="server" class="w-3 h-3 text-cyan-400"></i> ${escapeHtml(t)}
+                </span>
+              `).join('')}
+
+              <span class="px-2 py-0.5 rounded-md bg-cyber-950 border border-slate-800 text-slate-400 text-[11px] font-mono flex items-center gap-1">
+                <i data-lucide="globe" class="w-3 h-3 text-slate-400"></i> ${escapeHtml(vector)}
+              </span>
+
+              ${impactTypes.slice(0, 1).map(imp => `
+                <span class="px-2 py-0.5 rounded-md bg-red-950/40 border border-red-900/50 text-red-300 text-[11px] font-mono">
+                  ${escapeHtml(imp)}
+                </span>
+              `).join('')}
+            </div>
+
+            <!-- Description -->
+            <p class="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+              ${escapeHtml(cve.description || 'Sin descripción detallada disponible.')}
+            </p>
+
+            <!-- Card Footer -->
+            <div class="flex items-center justify-between pt-2 border-t border-cyber-800/60 text-xs">
+              <span class="text-[11px] font-mono text-slate-500">
+                Publicado: ${cve.published ? escapeHtml(cve.published.substring(0, 10)) : 'Reciente'}
+              </span>
+
+              <div class="flex items-center gap-2">
+                <button onclick="openCveModal('${escapeHtml(cve.id)}')" class="px-2.5 py-1 rounded-lg bg-cyber-800 hover:bg-cyan-950 hover:border-cyan-500/50 border border-cyber-700 text-cyan-400 hover:text-cyan-300 font-semibold text-xs transition flex items-center gap-1">
+                  <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                  <span>Ver Análisis</span>
+                </button>
+                <a href="https://nvd.nist.gov/vuln/detail/${escapeHtml(cve.id)}" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-cyan-300 p-1" title="Ver en NIST NVD">
+                  <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                </a>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // ==================== FILTERING & INTERACTIONS ====================
+
+    function filterNews() {
+      const search = document.getElementById('newsSearchInput').value.toLowerCase().trim();
+      const source = document.getElementById('newsSourceFilter').value;
+
+      const filtered = allNewsItems.filter(item => {
+        const matchesSearch = !search || 
+          item.title.toLowerCase().includes(search) || 
+          (item.summary && item.summary.toLowerCase().includes(search));
+        const matchesSource = !source || item.source_id === source || item.source_name === source;
+        return matchesSearch && matchesSource;
+      });
+
+      renderNewsList(filtered);
+    }
+
+    // Smart topic & protocol matching with whole-word boundaries and technical synonyms
+    function matchTopicSmart(topic, cve) {
+      if (!topic) return true;
+      const tLower = topic.toLowerCase().trim();
+
+      // 1. Direct matched_keywords list check (exact keyword match)
+      if (cve.matched_keywords && cve.matched_keywords.some(k => k.toLowerCase() === tLower)) {
+        return true;
+      }
+
+      // Word boundary regex helper to avoid false positives (e.g. 'rdp' matching 'wordPress')
+      function testWordBoundary(query, text) {
+        if (!text || !query) return false;
+        const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(?:^|[^a-zA-Z0-9])${escaped}(?:$|[^a-zA-Z0-9])`, 'i');
+        return regex.test(text);
+      }
+
+      // Expansion for technical acronyms and protocols
+      const synonyms = {
+        'rdp': ['rdp', 'remote desktop', 'remote desktop protocol', 'freerdp', 'rdesktop', 'ms-rdp', 'terminal services'],
+        'ssh': ['ssh', 'openssh', 'secure shell', 'libssh'],
+        'vpn': ['vpn', 'virtual private network', 'openvpn', 'wireguard'],
+        'sap': ['sap', 'netweaver', 's/4hana', 'sap erp'],
+        'citrix': ['citrix', 'netscaler', 'xenapp', 'xendesktop'],
+        'teams': ['teams', 'microsoft teams', 'teamcity'],
+        'edge': ['microsoft edge', 'msedge'],
+        'firefox': ['firefox', 'mozilla firefox']
+      };
+
+      const terms = synonyms[tLower] || [tLower];
+
+      // Test against affected targets
+      if (cve.affected_targets) {
+        for (const target of cve.affected_targets) {
+          for (const term of terms) {
+            if (testWordBoundary(term, target)) return true;
+          }
+        }
+      }
+
+      // Test against description
+      if (cve.description) {
+        for (const term of terms) {
+          if (testWordBoundary(term, cve.description)) return true;
+        }
+      }
+
+      return false;
+    }
+
+    function filterCves() {
+      const search = document.getElementById('cveSearchInput').value.toLowerCase().trim();
+      const severity = document.getElementById('cveSeverityFilter').value;
+      const sortBy = document.getElementById('cveSortBy').value;
+      const pocOnly = document.getElementById('cvePocOnlyCheckbox').checked;
+      const scope = document.getElementById('cveScopeFilter').value;
+
+      let filtered = allCveItems.filter(cve => {
+        // Search filter
+        const matchesSearch = !search ||
+          cve.id.toLowerCase().includes(search) ||
+          (cve.description && cve.description.toLowerCase().includes(search)) ||
+          (cve.affected_targets && cve.affected_targets.some(t => t.toLowerCase().includes(search)));
+
+        // Severity filter
+        const matchesSeverity = severity === "ALL" || (cve.severity && cve.severity.toUpperCase() === severity);
+
+        // Topic chip filter with whole-word regex and protocol synonyms
+        const matchesTopic = matchTopicSmart(activeTopicFilter, cve);
+
+        // PoC filter
+        const matchesPoc = !pocOnly || cve.has_poc;
+
+        // Scope filter
+        const matchesScope = !scope || (cve.attack_vector && cve.attack_vector.includes(scope));
+
+        return matchesSearch && matchesSeverity && matchesTopic && matchesPoc && matchesScope;
+      });
+
+      // Sorting
+      if (sortBy === "date") {
+        filtered.sort((a, b) => (b.published || "").localeCompare(a.published || ""));
+      } else if (sortBy === "poc") {
+        filtered.sort((a, b) => {
+          const pocA = a.has_poc ? 1 : 0;
+          const pocB = b.has_poc ? 1 : 0;
+          if (pocA !== pocB) return pocB - pocA;
+          return (b.score || 0) - (a.score || 0);
+        });
+      } else { // default: score
+        filtered.sort((a, b) => (b.score || 0) - (a.score || 0));
+      }
+
+      renderCvesList(filtered);
+    }
+
+    // Source Quick Pills
+    function renderSourcePills(sources) {
+      const container = document.getElementById('newsSourcePills');
+      container.innerHTML = `
+        <button onclick="selectSourcePill('')" class="source-pill ${activeSourceFilter === '' ? 'bg-cyan-600 text-white' : 'bg-cyber-800 text-slate-300 hover:bg-cyber-700'} whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-medium transition">
+          Todos
+        </button>
+        ${sources.filter(s => s.enabled).map(s => `
+          <button onclick="selectSourcePill('${escapeHtml(s.id)}')" class="source-pill ${activeSourceFilter === s.id ? 'bg-cyan-600 text-white' : 'bg-cyber-800 text-slate-300 hover:bg-cyber-700'} whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-medium transition">
+            ${escapeHtml(s.name)}
+          </button>
+        `).join('')}
+      `;
+    }
+
+    function selectSourcePill(sourceId) {
+      activeSourceFilter = sourceId;
+      document.getElementById('newsSourceFilter').value = sourceId;
+      renderSourcePills(rssSources);
+      filterNews();
+    }
+
+    function populateSourceSelect(sources) {
+      const select = document.getElementById('newsSourceFilter');
+      select.innerHTML = `
+        <option value="">Todas las fuentes RSS</option>
+        ${sources.filter(s => s.enabled).map(s => `
+          <option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>
+        `).join('')}
+      `;
+    }
+
+    // Topic Chips
+    function renderTopicChips(keywords) {
+      const container = document.getElementById('cveTopicChips');
+      container.innerHTML = `
+        <button onclick="selectTopicChip('')" class="topic-chip ${activeTopicFilter === '' ? 'bg-cyan-600 text-white' : 'bg-cyber-850 text-slate-300 border border-cyber-800 hover:border-slate-600'} whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-semibold transition">
+          Todos
+        </button>
+        ${keywords.map(kw => `
+          <button onclick="selectTopicChip('${escapeHtml(kw)}')" class="topic-chip ${activeTopicFilter.toLowerCase() === kw.toLowerCase() ? 'bg-cyan-600 text-white' : 'bg-cyber-850 text-slate-300 border border-cyber-800 hover:border-cyan-500/40'} whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-semibold uppercase transition">
+            ${escapeHtml(kw)}
+          </button>
+        `).join('')}
+      `;
+    }
+
+    function selectTopicChip(topic) {
+      activeTopicFilter = topic;
+      renderTopicChips(trackedKeywords);
+      document.getElementById('clearTopicBtn').classList.toggle('hidden', !topic);
+      filterCves();
+    }
+
+    function clearTopicFilter() {
+      selectTopicChip('');
+    }
+
+    // ==================== CVE DETAIL MODAL ====================
+
+    function openCveModal(cveId) {
+      const cve = allCveItems.find(c => c.id === cveId);
+      if (!cve) return;
+
+      const modal = document.getElementById('cveDetailModal');
+      document.getElementById('modalCveId').textContent = cve.id;
+
+      // Severity badge in modal
+      const sevBadge = document.getElementById('modalSeverityBadge');
+      sevBadge.textContent = `${cve.severity} [${cve.score !== null ? cve.score : 'N/A'}]`;
+      if (cve.severity === "CRITICAL") {
+        sevBadge.className = "px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-red-950 text-red-400 border border-red-500";
+      } else if (cve.severity === "HIGH") {
+        sevBadge.className = "px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-orange-950 text-orange-400 border border-orange-500";
+      } else {
+        sevBadge.className = "px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-amber-950 text-amber-400 border border-amber-500";
+      }
+
+      // External links
+      const linksContainer = document.getElementById('modalExternalLinks');
+      linksContainer.innerHTML = `
+        <a href="https://nvd.nist.gov/vuln/detail/${escapeHtml(cve.id)}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-cyber-800 hover:bg-cyber-700 text-xs font-mono text-cyan-300 border border-cyber-700 flex items-center gap-1">
+          <span>NVD NIST</span> <i data-lucide="external-link" class="w-3 h-3"></i>
+        </a>
+        <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=${escapeHtml(cve.id)}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-cyber-800 hover:bg-cyber-700 text-xs font-mono text-slate-300 border border-cyber-700 flex items-center gap-1">
+          <span>MITRE CVE</span> <i data-lucide="external-link" class="w-3 h-3"></i>
+        </a>
+      `;
+
+      // Body Content
+      const body = document.getElementById('modalCveBody');
+      body.innerHTML = `
+        <!-- Description -->
+        <div class="bg-cyber-850 p-4 rounded-xl border border-cyber-800">
+          <h4 class="text-xs font-mono uppercase text-slate-400 mb-1.5">Descripción de la Vulnerabilidad</h4>
+          <p class="text-xs text-slate-200 leading-relaxed">${escapeHtml(cve.description)}</p>
+        </div>
+
+        <!-- CISA KEV / PoC Intelligence Alert -->
+        ${cve.is_cisa_kev ? `
+          <div class="bg-red-950/60 border border-red-600/80 p-4 rounded-xl flex items-start gap-3">
+            <i data-lucide="alert-octagon" class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5"></i>
+            <div>
+              <div class="text-xs font-bold text-red-300 uppercase">Confirmado en Catálogo CISA KEV (Armado / En Explotación)</div>
+              <div class="text-xs text-slate-300 mt-1">Esta vulnerabilidad está siendo explotada activamente por actores de amenazas o campañas de ransomware. Se recomienda aplicar parches de forma prioritaria.</div>
+              ${cve.kev_info ? `
+                <div class="text-[11px] font-mono text-red-200/90 mt-2">
+                  • Campaña de Ransomware conocida: <strong>${escapeHtml(cve.kev_info.ransomware || 'Desconocido')}</strong>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- PoC / Exploit Links Section -->
+        ${cve.poc_links && cve.poc_links.length > 0 ? `
+          <div class="bg-purple-950/40 border border-purple-800/80 p-4 rounded-xl">
+            <h4 class="text-xs font-mono uppercase text-purple-300 mb-2 flex items-center gap-1.5">
+              <i data-lucide="zap" class="w-4 h-4 text-purple-400"></i>
+              <span>Pruebas de Concepto (PoC) y Repositorios de Explotación Detectados:</span>
+            </h4>
+            <div class="space-y-1.5">
+              ${cve.poc_links.map(link => `
+                <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2 rounded-lg bg-cyber-900 border border-purple-900/60 hover:border-purple-500 text-xs text-purple-200 transition">
+                  <span class="truncate font-mono">${escapeHtml(link)}</span>
+                  <i data-lucide="external-link" class="w-3.5 h-3.5 ml-2 flex-shrink-0 text-purple-400"></i>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Vector & Scope Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="bg-cyber-850 p-3 rounded-xl border border-cyber-800">
+            <div class="text-[10px] font-mono uppercase text-slate-400">Vector de Ataque</div>
+            <div class="text-xs font-semibold text-cyan-300 mt-0.5">${escapeHtml(cve.attack_vector || 'N/A')}</div>
+          </div>
+          <div class="bg-cyber-850 p-3 rounded-xl border border-cyber-800">
+            <div class="text-[10px] font-mono uppercase text-slate-400">Versión CVSS</div>
+            <div class="text-xs font-semibold text-slate-200 mt-0.5">${escapeHtml(cve.cvss_version || '3.1')}</div>
+          </div>
+          <div class="bg-cyber-850 p-3 rounded-xl border border-cyber-800">
+            <div class="text-[10px] font-mono uppercase text-slate-400">Impacto Primario</div>
+            <div class="text-xs font-semibold text-amber-300 mt-0.5">${escapeHtml((cve.impact_types || [])[0] || 'General')}</div>
+          </div>
+        </div>
+
+        <!-- Affected Targets -->
+        <div>
+          <h4 class="text-xs font-mono uppercase text-slate-400 mb-2">Productos y Tecnologías Afectadas</h4>
+          <div class="flex flex-wrap gap-2">
+            ${(cve.affected_targets || []).map(t => `
+              <span class="px-2.5 py-1 rounded-lg bg-cyber-850 border border-cyber-800 text-xs font-mono text-slate-200 flex items-center gap-1.5">
+                <i data-lucide="box" class="w-3.5 h-3.5 text-cyan-400"></i> ${escapeHtml(t)}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- References -->
+        ${cve.references && cve.references.length > 0 ? `
+          <div>
+            <h4 class="text-xs font-mono uppercase text-slate-400 mb-2">Referencias y Avisos de Fabricantes</h4>
+            <div class="space-y-1.5 max-h-40 overflow-y-auto">
+              ${cve.references.map(ref => `
+                <a href="${escapeHtml(ref.url)}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2 rounded-lg bg-cyber-850 hover:bg-cyber-800 text-xs text-slate-300 transition">
+                  <span class="truncate font-mono">${escapeHtml(ref.url)}</span>
+                  <div class="flex items-center gap-1.5 ml-2">
+                    ${(ref.tags || []).map(t => `<span class="px-1.5 py-0.5 rounded bg-cyber-900 text-[10px] text-cyan-400 font-mono">${escapeHtml(t)}</span>`).join('')}
+                    <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i>
+                  </div>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+      `;
+
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeCveModal() {
+      document.getElementById('cveDetailModal').classList.add('hidden');
+    }
+
+    // ==================== SETTINGS MODAL & SOURCE MANAGEMENT ====================
+
+    function openSettingsModal(tabName = 'tab-sources') {
+      document.getElementById('settingsModal').classList.remove('hidden');
+      switchSettingsTab(tabName);
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function switchSettingsTab(tabId) {
+      document.querySelectorAll('.settings-tab').forEach(el => el.classList.add('hidden'));
+      document.getElementById(tabId).classList.remove('hidden');
+
+      // Update tab headers
+      const tabs = [
+        { btn: 'btnTabSources', id: 'tab-sources' },
+        { btn: 'btnTabKeywords', id: 'tab-keywords' },
+        { btn: 'btnTabPreferences', id: 'tab-preferences' }
+      ];
+
+      tabs.forEach(t => {
+        const btn = document.getElementById(t.btn);
+        if (t.id === tabId) {
+          btn.className = "py-3 border-b-2 border-cyan-400 text-cyan-400 font-bold";
+        } else {
+          btn.className = "py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200";
+        }
+      });
+    }
+
+    // Render Sources Manager List
+    function renderSourcesManagerList(sources) {
+      const container = document.getElementById('sourcesManagerList');
+      document.getElementById('sourcesCountBadge').textContent = `${sources.length} fuentes`;
+
+      container.innerHTML = sources.map(s => `
+        <div class="flex items-center justify-between p-3 rounded-xl bg-cyber-850 border border-cyber-800 text-xs">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" onchange="toggleSource('${escapeHtml(s.id)}')" ${s.enabled ? 'checked' : ''} class="rounded bg-cyber-950 border-cyan-600 text-cyan-600 focus:ring-0 w-4 h-4 cursor-pointer">
+            <div>
+              <div class="font-bold text-white ${s.enabled ? '' : 'line-through text-slate-500'}">${escapeHtml(s.name)}</div>
+              <div class="text-[11px] font-mono text-slate-400 truncate max-w-sm">${escapeHtml(s.url)}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-cyber-900 text-[10px] text-cyan-400 font-mono">${escapeHtml(s.category || 'General')}</span>
+            <button onclick="deleteSource('${escapeHtml(s.id)}')" class="text-slate-400 hover:text-red-400 p-1.5 transition" title="Eliminar fuente">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    async function handleAddNewSource(e) {
+      e.preventDefault();
+      const name = document.getElementById('newSourceName').value.trim();
+      const url = document.getElementById('newSourceUrl').value.trim();
+      const category = document.getElementById('newSourceCategory').value.trim() || 'Seguridad';
+
+      if (!name || !url) return;
+
+      if (isBackendAvailable) {
+        try {
+          const resp = await fetch('/api/sources', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'add', name, url, category })
+          });
+          const res = await resp.json();
+          if (res.success) {
+            rssSources = res.sources;
+            renderSourcesManagerList(rssSources);
+            renderSourcePills(rssSources);
+            populateSourceSelect(rssSources);
+            document.getElementById('newSourceName').value = '';
+            document.getElementById('newSourceUrl').value = '';
+            document.getElementById('newSourceCategory').value = '';
+            document.getElementById('testUrlResult').className = "text-xs p-2.5 rounded-lg mt-2 bg-emerald-950 text-emerald-300 border border-emerald-800 block";
+            document.getElementById('testUrlResult').textContent = "¡Fuente RSS agregada con éxito! Se sincronizará automáticamente.";
+            setTimeout(triggerManualRefresh, 800);
+          } else {
+            alert(res.error || "Error al agregar fuente");
+          }
+        } catch (err) {
+          alert("Error de comunicación: " + err);
+        }
+      } else {
+        // Standalone mode
+        const newSource = {
+          id: `src_${Math.random().toString(36).substring(2, 8)}`,
+          name,
+          url,
+          category,
+          enabled: true
+        };
+        rssSources.push(newSource);
+        localStorage.setItem('cybersec_rss_sources', JSON.stringify(rssSources));
+        renderSourcesManagerList(rssSources);
+        renderSourcePills(rssSources);
+        populateSourceSelect(rssSources);
+        document.getElementById('newSourceName').value = '';
+        document.getElementById('newSourceUrl').value = '';
+        document.getElementById('testUrlResult').className = "text-xs p-2.5 rounded-lg mt-2 bg-emerald-950 text-emerald-300 border border-emerald-800 block";
+        document.getElementById('testUrlResult').textContent = "¡Fuente RSS guardada localmente!";
+      }
+    }
+
+    async function toggleSource(sourceId) {
+      if (isBackendAvailable) {
+        try {
+          const resp = await fetch('/api/sources', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'toggle', id: sourceId })
+          });
+          const res = await resp.json();
+          if (res.success) {
+            rssSources = res.sources;
+            renderSourcesManagerList(rssSources);
+            renderSourcePills(rssSources);
+            populateSourceSelect(rssSources);
+          }
+        } catch (e) {}
+      } else {
+        const src = rssSources.find(s => s.id === sourceId);
+        if (src) {
+          src.enabled = !src.enabled;
+          localStorage.setItem('cybersec_rss_sources', JSON.stringify(rssSources));
+          renderSourcesManagerList(rssSources);
+          renderSourcePills(rssSources);
+          populateSourceSelect(rssSources);
+        }
+      }
+    }
+
+    async function deleteSource(sourceId) {
+      if (!confirm("¿Seguro que deseas eliminar esta fuente RSS?")) return;
+
+      if (isBackendAvailable) {
+        try {
+          const resp = await fetch('/api/sources', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', id: sourceId })
+          });
+          const res = await resp.json();
+          if (res.success) {
+            rssSources = res.sources;
+            renderSourcesManagerList(rssSources);
+            renderSourcePills(rssSources);
+            populateSourceSelect(rssSources);
+          }
+        } catch (e) {}
+      } else {
+        rssSources = rssSources.filter(s => s.id !== sourceId);
+        localStorage.setItem('cybersec_rss_sources', JSON.stringify(rssSources));
+        renderSourcesManagerList(rssSources);
+        renderSourcePills(rssSources);
+        populateSourceSelect(rssSources);
+      }
+    }
+
+    async function testSourceUrl() {
+      const url = document.getElementById('newSourceUrl').value.trim();
+      const resultDiv = document.getElementById('testUrlResult');
+      if (!url) {
+        alert("Por favor introduce una URL primero.");
+        return;
+      }
+
+      resultDiv.className = "text-xs p-2.5 rounded-lg mt-2 bg-cyber-850 text-cyan-300 border border-cyan-800 block";
+      resultDiv.textContent = "Probando conexión con el feed RSS...";
+
+      if (isBackendAvailable) {
+        try {
+          const resp = await fetch('/api/sources/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+          });
+          const data = await resp.json();
+          if (data.valid) {
+            resultDiv.className = "text-xs p-2.5 rounded-lg mt-2 bg-emerald-950 text-emerald-300 border border-emerald-800 block";
+            resultDiv.innerHTML = `<strong>Feed Válido:</strong> ${escapeHtml(data.title)} (${data.items_count} artículos detectados)`;
+          } else {
+            resultDiv.className = "text-xs p-2.5 rounded-lg mt-2 bg-red-950 text-red-300 border border-red-800 block";
+            resultDiv.textContent = "Error al leer feed: " + (data.error || "No es un feed RSS/Atom válido.");
+          }
+        } catch (e) {
+          resultDiv.className = "text-xs p-2.5 rounded-lg mt-2 bg-red-950 text-red-300 border border-red-800 block";
+          resultDiv.textContent = "Error de red al probar URL: " + e;
+        }
+      } else {
+        resultDiv.className = "text-xs p-2.5 rounded-lg mt-2 bg-amber-950 text-amber-300 border border-amber-800 block";
+        resultDiv.textContent = "Verificación en vivo optimizada requiere el backend local activo.";
+      }
+    }
+
+    // ==================== KEYWORDS & TOPICS MANAGEMENT ====================
+
+    function renderKeywordsTags() {
+      const containerIn = document.getElementById('trackedKeywordsTags');
+      containerIn.innerHTML = trackedKeywords.map(kw => `
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyber-900 border border-cyan-800/80 text-cyan-300 text-xs font-mono font-semibold">
+          <span>${escapeHtml(kw)}</span>
+          <button onclick="removeKeyword('${escapeHtml(kw)}')" class="hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+        </span>
+      `).join('');
+
+      const containerEx = document.getElementById('excludedKeywordsTags');
+      containerEx.innerHTML = excludedKeywords.map(kw => `
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-950/40 border border-red-800/80 text-red-300 text-xs font-mono font-semibold">
+          <span>${escapeHtml(kw)}</span>
+          <button onclick="removeExclude('${escapeHtml(kw)}')" class="hover:text-white"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+        </span>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    async function addNewKeyword() {
+      const input = document.getElementById('newKeywordInput');
+      const val = input.value.trim().toLowerCase();
+      if (!val || trackedKeywords.includes(val)) return;
+
+      trackedKeywords.push(val);
+      input.value = '';
+      renderKeywordsTags();
+      renderTopicChips(trackedKeywords);
+      await saveKeywords();
+    }
+
+    async function removeKeyword(kw) {
+      trackedKeywords = trackedKeywords.filter(k => k !== kw);
+      renderKeywordsTags();
+      renderTopicChips(trackedKeywords);
+      await saveKeywords();
+    }
+
+    async function addNewExclude() {
+      const input = document.getElementById('newExcludeInput');
+      const val = input.value.trim().toLowerCase();
+      if (!val || excludedKeywords.includes(val)) return;
+
+      excludedKeywords.push(val);
+      input.value = '';
+      renderKeywordsTags();
+      await saveKeywords();
+    }
+
+    async function removeExclude(kw) {
+      excludedKeywords = excludedKeywords.filter(k => k !== kw);
+      renderKeywordsTags();
+      await saveKeywords();
+    }
+
+    async function saveKeywords() {
+      if (isBackendAvailable) {
+        try {
+          await fetch('/api/keywords', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ include: trackedKeywords, exclude: excludedKeywords })
+          });
+        } catch (e) {}
+      } else {
+        localStorage.setItem('cybersec_keywords_include', JSON.stringify(trackedKeywords));
+        localStorage.setItem('cybersec_keywords_exclude', JSON.stringify(excludedKeywords));
+      }
+    }
+
+    // ==================== AUTO-REFRESH & TIMERS ====================
+
+    function startAutoRefreshCountdown() {
+      if (countdownTimer) clearInterval(countdownTimer);
+      if (refreshIntervalMinutes <= 0) {
+        document.getElementById('countdownLabel').textContent = "(Pausado)";
+        return;
+      }
+
+      countdownSeconds = refreshIntervalMinutes * 60;
+      updateCountdownDisplay();
+
+      countdownTimer = setInterval(() => {
+        countdownSeconds--;
+        if (countdownSeconds <= 0) {
+          triggerManualRefresh();
+          countdownSeconds = refreshIntervalMinutes * 60;
+        }
+        updateCountdownDisplay();
+      }, 1000);
+    }
+
+    function updateCountdownDisplay() {
+      const mins = Math.floor(countdownSeconds / 60);
+      const secs = countdownSeconds % 60;
+      document.getElementById('countdownLabel').textContent = `(${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')})`;
+    }
+
+    function changeRefreshInterval() {
+      const select = document.getElementById('refreshIntervalSelect');
+      refreshIntervalMinutes = parseInt(select.value);
+      startAutoRefreshCountdown();
+    }
+
+    async function triggerManualRefresh() {
+      const btn = document.getElementById('refreshBtn');
+      const icon = document.getElementById('refreshIcon');
+      icon.classList.add('animate-spin');
+
+      if (isBackendAvailable) {
+        try {
+          await fetch('/api/refresh', { method: 'POST' });
+          // Poll after 2.5s for fresh backend updates
+          setTimeout(async () => {
+            await loadAllDataFromBackend();
+            icon.classList.remove('animate-spin');
+          }, 2500);
+        } catch (e) {
+          icon.classList.remove('animate-spin');
+        }
+      } else {
+        await fetchClientSideNews();
+        icon.classList.remove('animate-spin');
+      }
+
+      countdownSeconds = refreshIntervalMinutes * 60;
+      updateCountdownDisplay();
+    }
+
+    // Sound toggle
+    function toggleSoundAlerts() {
+      isSoundEnabled = !isSoundEnabled;
+      const icon = document.getElementById('soundIcon');
+      if (isSoundEnabled) {
+        icon.setAttribute('data-lucide', 'volume-2');
+        icon.className = "w-4 h-4 text-cyan-400";
+        playAlertTone('ping');
+      } else {
+        icon.setAttribute('data-lucide', 'volume-x');
+        icon.className = "w-4 h-4 text-slate-500";
+      }
+      lucide.createIcons();
+      localStorage.setItem('cybersec_sound', isSoundEnabled ? '1' : '0');
+    }
+
+    function loadLocalPreferences() {
+      const snd = localStorage.getItem('cybersec_sound');
+      if (snd !== null) isSoundEnabled = snd === '1';
+      const icon = document.getElementById('soundIcon');
+      if (!isSoundEnabled) {
+        icon.setAttribute('data-lucide', 'volume-x');
+        icon.className = "w-4 h-4 text-slate-500";
+      }
+    }
+
+    function savePreferences() {
+      const sliderVal = parseInt(document.getElementById('refreshSlider').value);
+      refreshIntervalMinutes = sliderVal;
+      document.getElementById('refreshIntervalSelect').value = [1, 5, 10, 30].includes(sliderVal) ? sliderVal : '10';
+      isSoundEnabled = document.getElementById('prefSoundEnabled').checked;
+      toggleSoundAlerts();
+      toggleSoundAlerts(); // sync icon
+      
+      const nvdKey = document.getElementById('prefNvdApiKey').value.trim();
+      if (isBackendAvailable && nvdKey) {
+        fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nvd_api_key: nvdKey, refresh_interval_minutes: sliderVal })
+        });
+      }
+
+      startAutoRefreshCountdown();
+      closeSettingsModal();
+      alert("Preferencias guardadas exitosamente.");
+    }
+
+    // ==================== UTILITY FUNCTIONS ====================
+
+    function updateStatsUI(stats) {
+      if (!stats) return;
+      document.getElementById('statNewsCount').textContent = stats.news_count || 0;
+      document.getElementById('statCvesCount').textContent = stats.cve_count || 0;
+      document.getElementById('statCriticalCount').textContent = stats.critical_count || 0;
+      document.getElementById('statPocCount').textContent = stats.poc_count || 0;
+    }
+
+    function switchMobileTab(tab) {
+      const newsSec = document.getElementById('sectionNews');
+      const cvesSec = document.getElementById('sectionCves');
+      const newsBtn = document.getElementById('mobileTabNewsBtn');
+      const cvesBtn = document.getElementById('mobileTabCvesBtn');
+
+      if (tab === 'news') {
+        newsSec.classList.remove('hidden');
+        cvesSec.classList.add('hidden');
+        newsBtn.className = "px-3 py-1 text-xs font-semibold rounded bg-cyan-600 text-white";
+        cvesBtn.className = "px-3 py-1 text-xs font-semibold rounded text-slate-400";
+      } else {
+        newsSec.classList.add('hidden');
+        cvesSec.classList.remove('hidden');
+        newsBtn.className = "px-3 py-1 text-xs font-semibold rounded text-slate-400";
+        cvesBtn.className = "px-3 py-1 text-xs font-semibold rounded bg-cyan-600 text-white";
+      }
+    }
+
+    function copyToClipboard(text, btnElement) {
+      navigator.clipboard.writeText(text).then(() => {
+        const origHtml = btnElement.innerHTML;
+        btnElement.innerHTML = `<span class="text-[10px] text-emerald-400 font-mono">¡Copiado!</span>`;
+        setTimeout(() => { btnElement.innerHTML = origHtml; lucide.createIcons(); }, 1400);
+      });
+    }
+
+    function scrollSectionToTop(elementId) {
+      const el = document.getElementById(elementId);
+      if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatTime(isoStr) {
+      if (!isoStr) return '--:--:--';
+      const d = new Date(isoStr);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function getRelativeTimeString(date) {
+      const diffSecs = Math.floor((Date.now() - date.getTime()) / 1000);
+      if (diffSecs < 60) return "Hace un momento";
+      const diffMins = Math.floor(diffSecs / 60);
+      if (diffMins < 60) return `Hace ${diffMins} min`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `Hace ${diffHours} h`;
+      const diffDays = Math.floor(diffHours / 24);
+      return `Hace ${diffDays} d`;
+    }
+
+    // Default rich sample dataset for instant initial display in standalone mode
+    function getClientSampleCves() {
+      const now = new Date();
+      return [
+        {
+          id: "CVE-2024-38063",
+          score: 9.8,
+          severity: "CRITICAL",
+          cvss_version: "3.1",
+          published: new Date(now - 6 * 3600000).toISOString(),
+          description: "Microsoft Windows TCP/IP Remote Code Execution Vulnerability. An unauthenticated remote attacker could repeatedly send crafted IPv6 packets, leading to remote code execution with SYSTEM privileges.",
+          affected_targets: ["Microsoft Windows 11", "Windows Server 2022", "TCP/IP Stack"],
+          matched_keywords: ["windows"],
+          attack_vector: "Red / Remoto (Network)",
+          impact_types: ["Ejecución Remota de Código (RCE)"],
+          has_poc: true,
+          is_cisa_kev: true,
+          poc_links: ["https://github.com/ynadji/cve-2024-38063-poc", "https://www.exploit-db.com/exploits/51944"]
+        },
+        {
+          id: "CVE-2024-21762",
+          score: 9.8,
+          severity: "CRITICAL",
+          cvss_version: "3.1",
+          published: new Date(now - 14 * 3600000).toISOString(),
+          description: "Fortinet FortiOS out-of-bounds write vulnerability in sslvpnd allows an unauthenticated remote attacker to execute arbitrary code or commands via specially crafted HTTP requests.",
+          affected_targets: ["Fortinet FortiOS", "SSL-VPN Gateway"],
+          matched_keywords: ["fortinet"],
+          attack_vector: "Red / Remoto (Network)",
+          impact_types: ["Ejecución Remota de Código (RCE)", "Bypass de Autenticación"],
+          has_poc: true,
+          is_cisa_kev: true,
+          poc_links: ["https://github.com/bishopfox/cve-2024-21762-poc"]
+        },
+        {
+          id: "CVE-2024-6387",
+          score: 8.1,
+          severity: "HIGH",
+          cvss_version: "3.1",
+          published: new Date(now - 24 * 3600000).toISOString(),
+          description: "regreSSHion: Remote Code Execution in OpenSSH's server (sshd) on glibc-based Linux systems due to a signal handler race condition in SIGALRM handling.",
+          affected_targets: ["OpenSSH sshd", "Linux Ubuntu/Debian", "SSH Protocol"],
+          matched_keywords: ["ssh", "linux"],
+          attack_vector: "Red / Remoto (Network)",
+          impact_types: ["Ejecución Remota de Código (RCE)", "Escalación de Privilegios"],
+          has_poc: true,
+          is_cisa_kev: false,
+          poc_links: ["https://github.com/zgzhang/cve-2024-6387-poc"]
+        },
+        {
+          id: "CVE-2024-20359",
+          score: 8.6,
+          severity: "HIGH",
+          cvss_version: "3.1",
+          published: new Date(now - 48 * 3600000).toISOString(),
+          description: "Cisco Adaptive Security Appliance (ASA) and Firepower Threat Defense (FTD) Software Web Server Denial of Service and command execution vulnerability.",
+          affected_targets: ["Cisco ASA Software", "Cisco FTD Firewall"],
+          matched_keywords: ["cisco"],
+          attack_vector: "Red / Remoto (Network)",
+          impact_types: ["Denegación de Servicio (DoS)", "Ejecución Remota de Código (RCE)"],
+          has_poc: true,
+          is_cisa_kev: true,
+          poc_links: ["https://github.com/projectdiscovery/nuclei-templates"]
+        },
+        {
+          id: "CVE-2024-3400",
+          score: 10.0,
+          severity: "CRITICAL",
+          cvss_version: "3.1",
+          published: new Date(now - 72 * 3600000).toISOString(),
+          description: "Palo Alto Networks PAN-OS GlobalProtect command injection vulnerability enables an unauthenticated attacker to execute arbitrary code with root privileges on the firewall.",
+          affected_targets: ["Palo Alto PAN-OS", "GlobalProtect Gateway"],
+          matched_keywords: ["vpn", "firewall"],
+          attack_vector: "Red / Remoto (Network)",
+          impact_types: ["Ejecución Remota de Código (RCE)"],
+          has_poc: true,
+          is_cisa_kev: true,
+          poc_links: ["https://github.com/W01fh4cker/CVE-2024-3400-RCE-PoC", "https://www.exploit-db.com/exploits/51965"]
+        }
+      ];
+    }
+  </script>
+</body>
+</html>

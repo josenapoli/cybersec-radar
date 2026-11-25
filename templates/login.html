@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberSec Radar – Acceso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0a0e1a; }
+        .glass {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #7c3aed);
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(0); }
+        .input-field {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            transition: border-color 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+        .alert-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        .alert-warning {
+            background: rgba(234, 179, 8, 0.15);
+            border: 1px solid rgba(234, 179, 8, 0.4);
+        }
+        .shield-icon { animation: pulse 3s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
+        .particle {
+            position: fixed; border-radius: 50%;
+            background: rgba(99,102,241,0.15);
+            animation: float linear infinite;
+            pointer-events: none;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+
+    <!-- Partículas de fondo -->
+    <div id="particles"></div>
+
+    <!-- Panel de login -->
+    <div class="glass rounded-2xl shadow-2xl p-8 w-full max-w-md z-10">
+
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div class="shield-icon text-5xl mb-3">🛡️</div>
+            <h1 class="text-2xl font-bold gradient-text">CyberSec Radar</h1>
+            <p class="text-slate-400 text-sm mt-1">Panel de Control de Ciberseguridad</p>
+        </div>
+
+        <!-- Alerta de error -->
+        {% if error %}
+        <div class="alert-error rounded-lg p-3 mb-4 flex items-start gap-2">
+            <span class="text-red-400 mt-0.5">⚠️</span>
+            <p class="text-red-300 text-sm">{{ error }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Alerta de bloqueo -->
+        {% if locked %}
+        <div class="alert-warning rounded-lg p-3 mb-4 flex items-start gap-2">
+            <span class="text-yellow-400 mt-0.5">🔒</span>
+            <p class="text-yellow-300 text-sm">Demasiados intentos fallidos. Espera {{ locked_seconds }} segundos.</p>
+        </div>
+        {% endif %}
+
+        <!-- Formulario -->
+        <form method="POST" action="/login" id="loginForm" autocomplete="off">
+
+            <!-- Usuario -->
+            <div class="mb-4">
+                <label class="block text-slate-300 text-sm font-medium mb-1.5">
+                    👤 Usuario
+                </label>
+                <input
+                    type="text"
+                    name="username"
+                    id="username"
+                    required
+                    autofocus
+                    class="input-field w-full rounded-lg px-4 py-2.5 text-white placeholder-slate-500 text-sm"
+                    placeholder="Nombre de usuario o cuenta AD"
+                    value="{{ username_prefill | default('') }}"
+                >
+            </div>
+
+            <!-- Contraseña -->
+            <div class="mb-4">
+                <label class="block text-slate-300 text-sm font-medium mb-1.5">
+                    🔑 Contraseña
+                </label>
+                <div class="relative">
+                    <input
+                        type="password"
+                        name="password"
+                        id="password"
+                        required
+                        class="input-field w-full rounded-lg px-4 py-2.5 pr-10 text-white placeholder-slate-500 text-sm"
+                        placeholder="Contraseña"
+                    >
+                    <button type="button" onclick="togglePassword()"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors text-sm">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <!-- CAPTCHA -->
+            <div class="mb-5">
+                <label class="block text-slate-300 text-sm font-medium mb-1.5">
+                    🧮 Verificación: <span class="text-indigo-400 font-semibold">{{ captcha_question }}</span>
+                </label>
+                <input
+                    type="number"
+                    name="captcha_answer"
+                    id="captchaAnswer"
+                    required
+                    class="input-field w-full rounded-lg px-4 py-2.5 text-white placeholder-slate-500 text-sm"
+                    placeholder="Escribe el resultado"
+                    autocomplete="off"
+                >
+            </div>
+
+            <!-- Botón login -->
+            <button
+                type="submit"
+                id="submitBtn"
+                class="btn-primary w-full py-3 rounded-lg text-white font-semibold text-sm shadow-lg"
+                {% if locked %}disabled{% endif %}
+            >
+                {% if locked %}
+                    🔒 Cuenta Bloqueada Temporalmente
+                {% else %}
+                    🔐 Iniciar Sesión
+                {% endif %}
+            </button>
+        </form>
+
+        <!-- Info AD (si está habilitado) -->
+        {% if ad_enabled %}
+        <div class="mt-4 p-3 rounded-lg" style="background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.2)">
+            <p class="text-cyan-400 text-xs text-center">
+                🏢 Autenticación Active Directory disponible<br>
+                <span class="text-slate-500">Dominio: <strong class="text-cyan-500">{{ ad_domain }}</strong></span>
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <p class="text-slate-600 text-xs text-center mt-6">
+            CyberSec Radar v2.0 · Acceso restringido al personal autorizado
+        </p>
+    </div>
+
+    <script>
+        // Partículas animadas
+        const container = document.getElementById('particles');
+        for (let i = 0; i < 12; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = Math.random() * 60 + 20;
+            p.style.cssText = `
+                width: ${size}px; height: ${size}px;
+                left: ${Math.random() * 100}%;
+                animation-duration: ${Math.random() * 15 + 10}s;
+                animation-delay: ${Math.random() * 10}s;
+            `;
+            container.appendChild(p);
+        }
+
+        // Toggle visibilidad contraseña
+        function togglePassword() {
+            const pwd = document.getElementById('password');
+            pwd.type = pwd.type === 'password' ? 'text' : 'password';
+        }
+
+        // Prevenir doble submit
+        document.getElementById('loginForm').addEventListener('submit', function() {
+            const btn = document.getElementById('submitBtn');
+            btn.textContent = '⏳ Verificando...';
+            btn.disabled = true;
+        });
+
+        // Auto-focus al campo vacío
+        window.addEventListener('load', function() {
+            const user = document.getElementById('username');
+            const cap = document.getElementById('captchaAnswer');
+            if (!user.value) user.focus();
+            else cap.focus();
+        });
+    </script>
+</body>
+</html>
