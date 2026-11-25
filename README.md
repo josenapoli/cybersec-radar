@@ -54,6 +54,9 @@
 4. Si la autenticación AD falla, el sistema hace *fallback* a la autenticación local.
 
 ---
+## Previsualizacion
+
+![CyberSec Radar preview](https://github.com/josenapoli/cybersec-radar/blob/master/cybersec-radar.png)
 
 ## 🛠️ Funcionalidades del panel
 | Área | Descripción |
